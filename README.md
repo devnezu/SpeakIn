@@ -1,13 +1,24 @@
 # SpeakIn
 
-Extensão de navegador para transcrever áudio em texto usando Whisper da GROQ.
+Extensão de navegador que injeta um botão de microfone em campos de texto para transcrever áudio usando Whisper da GROQ.
 
 ## Funcionalidades
 
+- Detecta automaticamente campos de texto em páginas web
+- Injeta botão de microfone ao lado dos controles existentes
 - Gravação de áudio direto do navegador
 - Transcrição automática usando Whisper Large V3
-- Interface minimalista e fácil de usar
-- Cópia rápida do texto transcrito
+- Inserção automática do texto transcrito no campo
+- Interface integrada ao design da página
+
+## Tecnologias
+
+- React 18
+- TypeScript
+- Tailwind CSS
+- Shadcn/ui
+- Vite
+- GROQ Whisper API
 
 ## Instalação
 
@@ -18,59 +29,90 @@ git clone https://github.com/seu-usuario/SpeakIn.git
 cd SpeakIn
 ```
 
-### 2. Configure a API Key
-
-A API key do GROQ é configurada diretamente na interface da extensão. Você pode obter sua chave gratuita em:
-
-https://console.groq.com/keys
-
-### 3. Gere os ícones (opcional)
-
-A extensão inclui um ícone SVG em `icons/icon.svg`. Para gerar os PNGs necessários:
+### 2. Instale as dependências
 
 ```bash
-# Usando ImageMagick
-convert -background none icons/icon.svg -resize 16x16 icons/icon16.png
-convert -background none icons/icon.svg -resize 48x48 icons/icon48.png
-convert -background none icons/icon.svg -resize 128x128 icons/icon128.png
+npm install
 ```
 
-Alternativamente, use qualquer editor gráfico para criar ícones PNG de 16x16, 48x48 e 128x128 pixels.
+### 3. Compile o projeto
 
-### 4. Carregue a extensão no navegador
+```bash
+npm run build
+```
+
+Isso criará a pasta `dist/` com os arquivos compilados.
+
+### 4. Configure a API Key
+
+Antes de usar a extensão, você precisa de uma API key do GROQ:
+
+1. Obtenha sua chave em: https://console.groq.com/keys
+2. Após instalar a extensão, abra o console do navegador (F12)
+3. Execute: `localStorage.setItem('groq_api_key', 'sua-chave-aqui')`
+
+### 5. Carregue a extensão no navegador
 
 #### Chrome / Edge / Brave
 
 1. Acesse `chrome://extensions/`
 2. Ative o "Modo do desenvolvedor"
 3. Clique em "Carregar sem compactação"
-4. Selecione a pasta do projeto
+4. Selecione a pasta raiz do projeto (SpeakIn)
 
 #### Firefox
 
 1. Acesse `about:debugging#/runtime/this-firefox`
 2. Clique em "Carregar extensão temporária"
-3. Selecione o arquivo `manifest.json`
+3. Selecione o arquivo `manifest.json` na pasta raiz
 
 ## Uso
 
-1. Clique no ícone da extensão na barra de ferramentas
-2. Cole sua API Key do GROQ (será salva localmente)
-3. Clique em "Gravar" e comece a falar
-4. Clique em "Parar" quando terminar
-5. A transcrição aparecerá automaticamente
-6. Use o botão "Copiar" para copiar o texto
+1. Navegue para qualquer página com campos de texto
+2. O botão de microfone aparecerá automaticamente ao lado dos controles
+3. Clique no ícone de microfone para iniciar a gravação
+4. Fale claramente
+5. Clique novamente para parar e transcrever
+6. O texto será inserido automaticamente no campo
 
-## Configuração
+## Desenvolvimento
 
-A API key é armazenada localmente no navegador usando localStorage. Nenhum dado é enviado para servidores externos além da API do GROQ.
+Para desenvolvimento com hot reload:
 
-## Tecnologias
+```bash
+npm run dev
+```
 
-- Manifest V3
-- MediaRecorder API
-- GROQ Whisper API
-- Vanilla JavaScript
+Isso compilará os arquivos em modo watch. Você precisará recarregar a extensão no navegador após cada mudança.
+
+## Build de produção
+
+```bash
+npm run build
+```
+
+## Estrutura do projeto
+
+```
+SpeakIn/
+├── src/
+│   ├── components/
+│   │   ├── ui/
+│   │   │   └── button.tsx          # Componente Button do Shadcn
+│   │   └── MicrophoneButton.tsx    # Componente principal do microfone
+│   ├── content/
+│   │   └── index.tsx                # Content script principal
+│   ├── lib/
+│   │   └── utils.ts                 # Utilitários
+│   └── index.css                    # Estilos globais Tailwind
+├── icons/                           # Ícones da extensão
+├── dist/                            # Arquivos compilados (gerado)
+├── manifest.json                    # Manifest da extensão
+├── vite.config.ts                   # Configuração do Vite
+├── tailwind.config.js               # Configuração do Tailwind
+├── tsconfig.json                    # Configuração do TypeScript
+└── package.json                     # Dependências
+```
 
 ## Privacidade
 
@@ -82,8 +124,29 @@ A API key é armazenada localmente no navegador usando localStorage. Nenhum dado
 ## Limitações
 
 - Requer conexão com internet para transcrição
-- Sujeito aos limites da API gratuita do GROQ
+- Sujeito aos limites da API do GROQ
 - Funciona melhor com áudio claro e sem ruído de fundo
+- Detecta campos de texto em páginas modernas com estruturas similares
+
+## Solução de problemas
+
+### O botão não aparece
+
+- Verifique se a página possui campos de texto compatíveis
+- Recarregue a página após instalar a extensão
+- Verifique se a extensão está ativada
+
+### Erro ao transcrever
+
+- Verifique se a API key está configurada corretamente
+- Teste sua API key em: https://console.groq.com/playground
+- Verifique sua conexão com internet
+- Confirme que não excedeu os limites da API
+
+### Permissão de microfone negada
+
+- Clique no ícone de cadeado na barra de endereço
+- Permita o acesso ao microfone para o site
 
 ## Licença
 

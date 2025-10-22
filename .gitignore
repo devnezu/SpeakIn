@@ -17,5 +17,11 @@ Thumbs.db
 # Logs
 *.log
 
-# Node modules (se adicionar build tools no futuro)
+# Node modules e build
 node_modules/
+dist/
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
