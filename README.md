@@ -43,15 +43,7 @@ npm run build
 
 Isso criará a pasta `dist/` com os arquivos compilados.
 
-### 4. Configure a API Key
-
-Antes de usar a extensão, você precisa de uma API key do GROQ:
-
-1. Obtenha sua chave em: https://console.groq.com/keys
-2. Após instalar a extensão, abra o console do navegador (F12)
-3. Execute: `localStorage.setItem('groq_api_key', 'sua-chave-aqui')`
-
-### 5. Carregue a extensão no navegador
+### 4. Carregue a extensão no navegador
 
 #### Chrome / Edge / Brave
 
@@ -65,6 +57,17 @@ Antes de usar a extensão, você precisa de uma API key do GROQ:
 1. Acesse `about:debugging#/runtime/this-firefox`
 2. Clique em "Carregar extensão temporária"
 3. Selecione o arquivo `manifest.json` na pasta raiz
+
+### 5. Configure a API Key
+
+1. Clique no ícone da extensão SpeakIn na barra de ferramentas do navegador
+2. Um popup será aberto com a interface de configuração
+3. Obtenha sua chave gratuita em: https://console.groq.com/keys
+4. Cole a API key no campo de texto
+5. Clique em "Salvar"
+6. A chave ficará salva localmente no seu navegador
+
+Para remover a API key, clique no botão de lixeira no popup.
 
 ## Uso
 
@@ -101,12 +104,16 @@ SpeakIn/
 │   │   │   └── button.tsx          # Componente Button do Shadcn
 │   │   └── MicrophoneButton.tsx    # Componente principal do microfone
 │   ├── content/
-│   │   └── index.tsx                # Content script principal
+│   │   └── index.tsx                # Content script (injeta botão nas páginas)
+│   ├── popup/
+│   │   ├── index.tsx                # Entry point do popup
+│   │   └── Popup.tsx                # Interface de configuração da API key
 │   ├── lib/
 │   │   └── utils.ts                 # Utilitários
 │   └── index.css                    # Estilos globais Tailwind
 ├── icons/                           # Ícones da extensão
-├── dist/                            # Arquivos compilados (gerado)
+├── dist/                            # Arquivos compilados (gerado pelo build)
+├── popup.html                       # HTML do popup
 ├── manifest.json                    # Manifest da extensão
 ├── vite.config.ts                   # Configuração do Vite
 ├── tailwind.config.js               # Configuração do Tailwind
