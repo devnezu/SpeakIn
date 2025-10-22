@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# API Keys
+**/config.local.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Node modules (se adicionar build tools no futuro)
+node_modules/
