@@ -12,6 +12,8 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
   onTranscription,
   className,
 }) => {
+  console.log('{SPEAKIN} MicrophoneButton component mounted');
+
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -22,48 +24,63 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
   };
 
   const startRecording = async () => {
+    console.log('{SPEAKIN} startRecording called');
     try {
+      console.log('{SPEAKIN} Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('{SPEAKIN} Microphone access granted');
+
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      console.log('{SPEAKIN} MediaRecorder created');
 
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log('{SPEAKIN} Audio chunk received, size:', event.data.size);
         }
       };
 
       mediaRecorder.onstop = async () => {
+        console.log('{SPEAKIN} Recording stopped, total chunks:', audioChunksRef.current.length);
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log('{SPEAKIN} Audio blob created, size:', audioBlob.size);
         await transcribeAudio(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
+        console.log('{SPEAKIN} Stream tracks stopped');
       };
 
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
+      console.log('{SPEAKIN} Recording started');
     } catch (error) {
-      console.error('Erro ao iniciar gravação:', error);
+      console.error('{SPEAKIN} ERROR starting recording:', error);
       alert('Erro ao acessar microfone. Verifique as permissões.');
     }
   };
 
   const stopRecording = () => {
+    console.log('{SPEAKIN} stopRecording called');
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       setIsProcessing(true);
+      console.log('{SPEAKIN} MediaRecorder stopped, processing...');
     }
   };
 
   const transcribeAudio = async (audioBlob: Blob) => {
+    console.log('{SPEAKIN} transcribeAudio called with blob size:', audioBlob.size);
     try {
       const apiKey = getApiKey();
+      console.log('{SPEAKIN} API key retrieved:', apiKey ? `${apiKey.substring(0, 12)}...` : 'null');
 
       if (!apiKey) {
+        console.error('{SPEAKIN} ERROR: No API key configured');
         alert(
-          'API Key do GROQ não configurada. Configure em localStorage: groq_api_key'
+          'API Key do GROQ não configurada. Clique no ícone da extensão para configurar.'
         );
         setIsProcessing(false);
         return;
@@ -73,6 +90,7 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
       formData.append('file', audioBlob, 'audio.webm');
       formData.append('model', 'whisper-large-v3');
       formData.append('language', 'pt');
+      console.log('{SPEAKIN} FormData prepared, sending to GROQ API...');
 
       const response = await fetch(
         'https://api.groq.com/openai/v1/audio/transcriptions',
@@ -85,27 +103,35 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
         }
       );
 
+      console.log('{SPEAKIN} API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('{SPEAKIN} API error:', errorData);
         throw new Error(errorData.error?.message || `Erro na API: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('{SPEAKIN} Transcription received:', data);
 
       if (data.text) {
+        console.log('{SPEAKIN} Calling onTranscription callback with text:', data.text);
         onTranscription(data.text);
       } else {
+        console.log('{SPEAKIN} No text detected in response');
         alert('Nenhum texto detectado');
       }
     } catch (error) {
-      console.error('Erro na transcrição:', error);
+      console.error('{SPEAKIN} ERROR in transcribeAudio:', error);
       alert(`Erro ao transcrever: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsProcessing(false);
+      console.log('{SPEAKIN} Processing complete');
     }
   };
 
   const handleClick = () => {
+    console.log('{SPEAKIN} Button clicked, isRecording:', isRecording, 'isProcessing:', isProcessing);
     if (isRecording) {
       stopRecording();
     } else if (!isProcessing) {

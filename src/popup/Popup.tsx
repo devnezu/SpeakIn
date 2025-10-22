@@ -3,13 +3,17 @@ import { Key, Trash2, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 export const Popup: React.FC = () => {
+  console.log('{SPEAKIN} Popup component initializing');
+
   const [apiKey, setApiKey] = useState('');
   const [savedKey, setSavedKey] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showClearSuccess, setShowClearSuccess] = useState(false);
 
   useEffect(() => {
+    console.log('{SPEAKIN} Popup useEffect running');
     const key = localStorage.getItem('groq_api_key');
+    console.log('{SPEAKIN} Retrieved API key from localStorage:', key ? `${key.substring(0, 12)}...` : 'null');
     if (key) {
       setSavedKey(key);
       setApiKey(key);
@@ -17,20 +21,27 @@ export const Popup: React.FC = () => {
   }, []);
 
   const handleSave = () => {
+    console.log('{SPEAKIN} handleSave called');
     if (apiKey.trim()) {
+      console.log('{SPEAKIN} Saving API key to localStorage:', apiKey.substring(0, 12) + '...');
       localStorage.setItem('groq_api_key', apiKey.trim());
       setSavedKey(apiKey.trim());
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
+      console.log('{SPEAKIN} API key saved successfully');
+    } else {
+      console.log('{SPEAKIN} API key is empty, not saving');
     }
   };
 
   const handleClear = () => {
+    console.log('{SPEAKIN} handleClear called');
     localStorage.removeItem('groq_api_key');
     setApiKey('');
     setSavedKey('');
     setShowClearSuccess(true);
     setTimeout(() => setShowClearSuccess(false), 3000);
+    console.log('{SPEAKIN} API key cleared');
   };
 
   const isKeyConfigured = savedKey.length > 0;

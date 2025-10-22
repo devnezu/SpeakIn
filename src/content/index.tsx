@@ -4,7 +4,13 @@ import '../index.css';
 
 const INJECTION_MARKER = 'speakin-injected';
 
+console.log('{SPEAKIN} Content script loaded');
+console.log('{SPEAKIN} Document state:', document.readyState);
+
 function insertTextIntoInput(element: HTMLElement, text: string) {
+  console.log('{SPEAKIN} Inserting text into input:', text);
+  console.log('{SPEAKIN} Target element:', element);
+
   if (element instanceof HTMLTextAreaElement) {
     const currentValue = element.value;
     const newValue = currentValue ? `${currentValue} ${text}` : text;
@@ -47,28 +53,42 @@ function insertTextIntoInput(element: HTMLElement, text: string) {
 
 function findInputElement(container: HTMLElement): HTMLElement | null {
   const textarea = container.querySelector('textarea');
-  if (textarea) return textarea;
+  if (textarea) {
+    console.log('{SPEAKIN} Found textarea:', textarea);
+    return textarea;
+  }
 
   const contentEditable = container.querySelector('[contenteditable="true"]');
-  if (contentEditable instanceof HTMLElement) return contentEditable;
+  if (contentEditable instanceof HTMLElement) {
+    console.log('{SPEAKIN} Found contenteditable:', contentEditable);
+    return contentEditable;
+  }
 
+  console.log('{SPEAKIN} No input element found in container:', container);
   return null;
 }
 
 function injectMicrophoneButton(container: HTMLElement) {
+  console.log('{SPEAKIN} Attempting to inject button into container:', container);
+
   if (container.hasAttribute(INJECTION_MARKER)) {
+    console.log('{SPEAKIN} Container already has injection marker, skipping');
     return;
   }
 
   const inputElement = findInputElement(container);
   if (!inputElement) {
+    console.log('{SPEAKIN} No input element found, skipping injection');
     return;
   }
 
   const controlsArea = container.querySelector('.flex.gap-2');
   if (!controlsArea) {
+    console.log('{SPEAKIN} No controls area found (.flex.gap-2), skipping injection');
     return;
   }
+
+  console.log('{SPEAKIN} Found controls area:', controlsArea);
 
   const micContainer = document.createElement('div');
   micContainer.className = 'flex shrink-0';
@@ -81,10 +101,13 @@ function injectMicrophoneButton(container: HTMLElement) {
 
   if (insertionPoint) {
     controlsArea.insertBefore(micContainer, insertionPoint);
+    console.log('{SPEAKIN} Inserted button before:', insertionPoint);
   } else {
     controlsArea.appendChild(micContainer);
+    console.log('{SPEAKIN} Appended button to controls area');
   }
 
+  console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
   const root = createRoot(micContainer);
   root.render(
     <MicrophoneButton
@@ -94,28 +117,42 @@ function injectMicrophoneButton(container: HTMLElement) {
   );
 
   container.setAttribute(INJECTION_MARKER, 'true');
+  console.log('{SPEAKIN} Button injection complete');
 }
 
 function observeAndInject() {
+  console.log('{SPEAKIN} Starting observation and injection');
+
   const targetSelectors = [
     'form.w-full',
     'div[class*="flex"][class*="flex-col"][class*="bg-bg-000"]',
   ];
 
+  console.log('{SPEAKIN} Target selectors:', targetSelectors);
+
   function scanAndInject() {
+    console.log('{SPEAKIN} Scanning for injection points...');
     targetSelectors.forEach((selector) => {
       const containers = document.querySelectorAll(selector);
-      containers.forEach((container) => {
+      console.log(`{SPEAKIN} Found ${containers.length} containers for selector: "${selector}"`);
+
+      containers.forEach((container, index) => {
+        console.log(`{SPEAKIN} Processing container ${index + 1}/${containers.length}`);
         if (container instanceof HTMLElement && !container.hasAttribute(INJECTION_MARKER)) {
           injectMicrophoneButton(container);
+        } else if (container.hasAttribute(INJECTION_MARKER)) {
+          console.log(`{SPEAKIN} Container ${index + 1} already processed`);
         }
       });
     });
+    console.log('{SPEAKIN} Scan complete');
   }
 
   scanAndInject();
 
+  console.log('{SPEAKIN} Setting up MutationObserver');
   const observer = new MutationObserver(() => {
+    console.log('{SPEAKIN} DOM mutation detected, rescanning...');
     scanAndInject();
   });
 
@@ -123,10 +160,17 @@ function observeAndInject() {
     childList: true,
     subtree: true,
   });
+  console.log('{SPEAKIN} MutationObserver active');
 }
 
+console.log('{SPEAKIN} Checking document ready state...');
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', observeAndInject);
+  console.log('{SPEAKIN} Document still loading, waiting for DOMContentLoaded');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('{SPEAKIN} DOMContentLoaded fired');
+    observeAndInject();
+  });
 } else {
+  console.log('{SPEAKIN} Document already loaded, starting immediately');
   observeAndInject();
 }
