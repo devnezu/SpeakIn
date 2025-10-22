@@ -5,18 +5,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "tsc && vite build",
+    "build": "npm run build:clean && tsc && npm run build:content && npm run build:popup",
+    "build:clean": "rm -rf dist && mkdir -p dist",
+    "build:content": "vite build --config vite.config.content.ts",
+    "build:popup": "vite build --config vite.config.popup.ts",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "lucide-react": "^0.468.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.8",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/chrome": "^0.0.277",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.18",

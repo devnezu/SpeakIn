@@ -11,18 +11,33 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         content: resolve(__dirname, 'src/content/index.tsx'),
         popup: resolve(__dirname, 'src/popup/index.tsx'),
       },
       output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]',
+        entryFileNames: (chunkInfo) => {
+          return '[name].js';
+        },
+        assetFileNames: 'index.[ext]',
+        format: 'iife',
+        // Prevent code splitting - inline everything into entry chunks
+        inlineDynamicImports: false,
       },
+      // Prevent Vite from creating shared chunks
+      external: [],
     },
     minify: false,
     sourcemap: false,
+    cssCodeSplit: false,
+    // Force single chunk per entry
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
   },
 });
