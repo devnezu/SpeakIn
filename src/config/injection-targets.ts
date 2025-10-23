@@ -60,6 +60,25 @@ export const injectionTargets: InjectionTarget[] = [
     injectOnce: false,
   },
 
+  // Claude Code - Input de código
+  {
+    name: 'Claude Code - Code Input',
+    urlPattern: /claude\.ai\/code/,
+    containerSelector: 'form.relative.w-full:has(textarea[placeholder*="code"])',
+    inputSelectors: [
+      'textarea[placeholder*="Ask Claude to write code"]',
+      'textarea[placeholder*="code"]',
+      'textarea',
+    ],
+    controlsSelectors: [
+      '.absolute.bottom-0.right-0',
+      'div:has(button[type="submit"])',
+    ],
+    insertBeforeSelector: 'button[type="submit"]',
+    minButtonsRequired: 0,
+    injectOnce: false,
+  },
+
   // Exemplo: ChatGPT (descomente e ajuste os seletores)
   // {
   //   name: 'ChatGPT - Chat Input',
