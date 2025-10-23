@@ -153,18 +153,18 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
       onClick={handleClick}
       disabled={isProcessing}
       className={cn(
-        'shrink-0 transition-all h-8 min-w-8 rounded-lg',
+        'shrink-0 transition-all',
         isRecording && 'text-red-500 hover:text-red-600',
         className
       )}
       aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
     >
       {isProcessing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="w-4 h-4 animate-spin" />
       ) : isRecording ? (
-        <Square className="h-4 w-4 fill-current" />
+        <Square className="w-4 h-4 fill-current" />
       ) : (
-        <Mic className="h-4 w-4" />
+        <Mic className="w-4 h-4" />
       )}
     </Button>
   );

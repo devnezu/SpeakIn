@@ -134,31 +134,31 @@ function injectMicrophoneButton(container: HTMLElement) {
 
   console.log('{SPEAKIN} Found controls area:', controlsArea);
 
-  const micContainer = document.createElement('div');
-  micContainer.className = 'flex shrink-0';
+  // Criar container para o botão
+  const micContainer = document.createElement('span');
   micContainer.setAttribute(INJECTION_MARKER, 'true');
-  micContainer.setAttribute('data-state', 'closed');
-  micContainer.style.opacity = '1';
-  micContainer.style.transform = 'none';
+  micContainer.style.display = 'inline-flex';
 
-  // Tentar encontrar o melhor ponto de inserção
+  // Tentar encontrar o botão submit para inserir antes dele
   const submitButton = controlsArea.querySelector('button[type="submit"]');
-  const insertionPoint = controlsArea.querySelector('.flex.shrink') || submitButton || controlsArea.lastChild;
 
-  if (insertionPoint && insertionPoint !== controlsArea.lastChild) {
-    controlsArea.insertBefore(micContainer, insertionPoint);
-    console.log('{SPEAKIN} Inserted button before:', insertionPoint);
+  if (submitButton) {
+    // Inserir antes do submit button
+    submitButton.parentElement!.insertBefore(micContainer, submitButton);
+    console.log('{SPEAKIN} Inserted button before submit button');
   } else {
+    // Fallback: inserir no final da área de controles
     controlsArea.appendChild(micContainer);
-    console.log('{SPEAKIN} Appended button to controls area');
+    console.log('{SPEAKIN} Appended button to controls area (no submit found)');
   }
 
+  // Renderizar o botão React
   console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
   const root = createRoot(micContainer);
   root.render(
     <MicrophoneButton
       onTranscription={(text) => insertTextIntoInput(inputElement, text)}
-      className="border-0.5 text-text-300 border-border-300 active:scale-[0.98] hover:text-text-200/90 hover:bg-bg-100"
+      className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
     />
   );
 
