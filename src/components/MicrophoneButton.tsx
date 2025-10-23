@@ -153,7 +153,8 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
       onClick={handleClick}
       disabled={isProcessing}
       className={cn(
-        'shrink-0 transition-all',
+        'border-0.5 transition-all h-8 min-w-8 rounded-lg flex items-center px-[7.5px] shrink-0 active:scale-[0.98]',
+        'text-text-300 border-border-300 hover:text-text-200/90 hover:bg-bg-100',
         isRecording && 'text-red-500 hover:text-red-600',
         className
       )}
