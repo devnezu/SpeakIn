@@ -135,10 +135,12 @@ function injectMicrophoneButton(container: HTMLElement) {
   console.log('{SPEAKIN} Found controls area:', controlsArea);
 
   // Criar container para o botão
-  const micContainer = document.createElement('span');
-  micContainer.className = 'flex shrink min-w-8 !shrink-0';
+  const micContainer = document.createElement('div');
+  micContainer.className = 'flex shrink-0';
   micContainer.setAttribute(INJECTION_MARKER, 'true');
-  micContainer.style.display = 'inline-flex';
+  micContainer.setAttribute('data-state', 'closed');
+  micContainer.style.opacity = '1';
+  micContainer.style.transform = 'none';
 
   // Tentar encontrar o botão submit para inserir antes dele
   const submitButton = controlsArea.querySelector('button[type="submit"]');
