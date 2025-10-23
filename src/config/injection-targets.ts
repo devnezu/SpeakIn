@@ -87,6 +87,27 @@ export const injectionTargets: InjectionTarget[] = [
     buttonClasses: 'border-0.5 transition-all h-6 w-6 rounded-md flex items-center justify-center group !pointer-events-auto !outline-offset-1 text-text-300 border-border-300 hover:text-text-200/90 hover:bg-bg-100 active:scale-[0.98]',
   },
 
+  // Claude Code - Reply Input (campo de resposta)
+  {
+    name: 'Claude Code - Reply Input',
+    urlPattern: /claude\.ai\/code/,
+    containerSelector: 'section#turn-form form',
+    inputSelectors: [
+      'textarea#turn-textarea',
+      'textarea[placeholder*="Reply to Claude"]',
+      'textarea',
+    ],
+    controlsSelectors: [
+      '.flex.items-center:has(button[type="submit"])',
+      'div:has(button[type="submit"])',
+    ],
+    insertBeforeSelector: 'button[type="submit"]',
+    minButtonsRequired: 0,
+    injectOnce: false,
+    wrapperClasses: '', // Sem wrapper
+    buttonClasses: 'self-end rounded-lg transition-colors p-1.5 text-text-300 border-0.5 border-border-200 hover:text-text-200 hover:bg-bg-100 active:scale-95',
+  },
+
   // Exemplo: ChatGPT (descomente e ajuste os seletores)
   // {
   //   name: 'ChatGPT - Chat Input',
