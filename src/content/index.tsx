@@ -68,6 +68,33 @@ function findInputElement(container: HTMLElement): HTMLElement | null {
   return null;
 }
 
+function findControlsArea(container: HTMLElement): Element | null {
+  // Tentar vários seletores para encontrar a área de controles
+  const selectors = [
+    '.flex.gap-2',
+    '.flex.items-center',
+    'div.flex:has(button[type="submit"])',
+  ];
+
+  for (const selector of selectors) {
+    const area = container.querySelector(selector);
+    if (area) {
+      console.log(`{SPEAKIN} Found controls area with selector: "${selector}"`, area);
+      return area;
+    }
+  }
+
+  // Se não encontrou, tentar encontrar qualquer div que contenha um botão de submit
+  const submitButton = container.querySelector('button[type="submit"]');
+  if (submitButton && submitButton.parentElement) {
+    console.log('{SPEAKIN} Found controls area via submit button parent:', submitButton.parentElement);
+    return submitButton.parentElement;
+  }
+
+  console.log('{SPEAKIN} No controls area found');
+  return null;
+}
+
 function injectMicrophoneButton(container: HTMLElement) {
   console.log('{SPEAKIN} Attempting to inject button into container:', container);
 
@@ -82,9 +109,9 @@ function injectMicrophoneButton(container: HTMLElement) {
     return;
   }
 
-  const controlsArea = container.querySelector('.flex.gap-2');
+  const controlsArea = findControlsArea(container);
   if (!controlsArea) {
-    console.log('{SPEAKIN} No controls area found (.flex.gap-2), skipping injection');
+    console.log('{SPEAKIN} No controls area found, skipping injection');
     return;
   }
 
@@ -97,9 +124,11 @@ function injectMicrophoneButton(container: HTMLElement) {
   micContainer.style.opacity = '1';
   micContainer.style.transform = 'none';
 
-  const insertionPoint = controlsArea.querySelector('.flex.shrink') || controlsArea.firstChild;
+  // Tentar encontrar o melhor ponto de inserção
+  const submitButton = controlsArea.querySelector('button[type="submit"]');
+  const insertionPoint = controlsArea.querySelector('.flex.shrink') || submitButton || controlsArea.lastChild;
 
-  if (insertionPoint) {
+  if (insertionPoint && insertionPoint !== controlsArea.lastChild) {
     controlsArea.insertBefore(micContainer, insertionPoint);
     console.log('{SPEAKIN} Inserted button before:', insertionPoint);
   } else {
@@ -126,6 +155,8 @@ function observeAndInject() {
   const targetSelectors = [
     'form.w-full',
     'div[class*="flex"][class*="flex-col"][class*="bg-bg-000"]',
+    'div[class*="relative"][class*="bg-bg-000"][class*="rounded-lg"]',
+    'div[class*="relative"][class*="bg-bg-000"][class*="border"]',
   ];
 
   console.log('{SPEAKIN} Target selectors:', targetSelectors);
