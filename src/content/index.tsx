@@ -103,6 +103,16 @@ function injectMicrophoneButton(container: HTMLElement) {
     return;
   }
 
+  // Verificar se algum ancestor já foi processado
+  let parent = container.parentElement;
+  while (parent) {
+    if (parent.hasAttribute(INJECTION_MARKER)) {
+      console.log('{SPEAKIN} Parent element already has injection marker, skipping');
+      return;
+    }
+    parent = parent.parentElement;
+  }
+
   const inputElement = findInputElement(container);
   if (!inputElement) {
     console.log('{SPEAKIN} No input element found, skipping injection');
@@ -112,6 +122,13 @@ function injectMicrophoneButton(container: HTMLElement) {
   const controlsArea = findControlsArea(container);
   if (!controlsArea) {
     console.log('{SPEAKIN} No controls area found, skipping injection');
+    return;
+  }
+
+  // Verificar se já existe um botão de microfone nesta área de controles
+  if (controlsArea.querySelector(`div[${INJECTION_MARKER}="true"]`)) {
+    console.log('{SPEAKIN} Controls area already has microphone button, skipping');
+    container.setAttribute(INJECTION_MARKER, 'true');
     return;
   }
 
