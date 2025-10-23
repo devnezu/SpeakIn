@@ -68,33 +68,6 @@ function findInputElement(container: HTMLElement): HTMLElement | null {
   return null;
 }
 
-function findControlsArea(container: HTMLElement): Element | null {
-  // Tentar vários seletores para encontrar a área de controles
-  const selectors = [
-    '.flex.gap-2',
-    '.flex.items-center',
-    'div.flex:has(button[type="submit"])',
-  ];
-
-  for (const selector of selectors) {
-    const area = container.querySelector(selector);
-    if (area) {
-      console.log(`{SPEAKIN} Found controls area with selector: "${selector}"`, area);
-      return area;
-    }
-  }
-
-  // Se não encontrou, tentar encontrar qualquer div que contenha um botão de submit
-  const submitButton = container.querySelector('button[type="submit"]');
-  if (submitButton && submitButton.parentElement) {
-    console.log('{SPEAKIN} Found controls area via submit button parent:', submitButton.parentElement);
-    return submitButton.parentElement;
-  }
-
-  console.log('{SPEAKIN} No controls area found');
-  return null;
-}
-
 function injectMicrophoneButton(container: HTMLElement) {
   console.log('{SPEAKIN} Attempting to inject button into container:', container);
 
@@ -119,38 +92,37 @@ function injectMicrophoneButton(container: HTMLElement) {
     return;
   }
 
-  const controlsArea = findControlsArea(container);
-  if (!controlsArea) {
-    console.log('{SPEAKIN} No controls area found, skipping injection');
+  // Procurar pelo botão de plus especificamente
+  const plusButton = container.querySelector('button[id="input-plus-menu-trigger"]');
+  if (!plusButton) {
+    console.log('{SPEAKIN} Plus button not found, skipping injection');
     return;
   }
 
-  // Verificar se já existe um botão de microfone nesta área de controles
-  if (controlsArea.querySelector(`div[${INJECTION_MARKER}="true"]`)) {
-    console.log('{SPEAKIN} Controls area already has microphone button, skipping');
+  // Subir até encontrar o container pai que envolve o botão de plus
+  // Esse container é tipicamente um div com classes "relative shrink-0"
+  let plusContainer = plusButton.closest('.relative.shrink-0');
+  if (!plusContainer) {
+    console.log('{SPEAKIN} Plus button container not found, skipping injection');
+    return;
+  }
+
+  // Verificar se já existe um botão de microfone
+  if (container.querySelector(`div[${INJECTION_MARKER}="true"]`)) {
+    console.log('{SPEAKIN} Microphone button already exists, skipping');
     container.setAttribute(INJECTION_MARKER, 'true');
     return;
   }
 
-  console.log('{SPEAKIN} Found controls area:', controlsArea);
+  console.log('{SPEAKIN} Found plus button container:', plusContainer);
 
-  // Criar container para o botão
-  const micContainer = document.createElement('span');
+  // Criar container para o botão de microfone
+  const micContainer = document.createElement('div');
   micContainer.setAttribute(INJECTION_MARKER, 'true');
-  micContainer.style.display = 'inline-flex';
 
-  // Tentar encontrar o botão submit para inserir antes dele
-  const submitButton = controlsArea.querySelector('button[type="submit"]');
-
-  if (submitButton) {
-    // Inserir antes do submit button
-    submitButton.parentElement!.insertBefore(micContainer, submitButton);
-    console.log('{SPEAKIN} Inserted button before submit button');
-  } else {
-    // Fallback: inserir no final da área de controles
-    controlsArea.appendChild(micContainer);
-    console.log('{SPEAKIN} Appended button to controls area (no submit found)');
-  }
+  // Inserir o botão DEPOIS do container do plus button
+  plusContainer.parentElement!.insertBefore(micContainer, plusContainer.nextSibling);
+  console.log('{SPEAKIN} Inserted button container after plus button');
 
   // Renderizar o botão React
   console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
