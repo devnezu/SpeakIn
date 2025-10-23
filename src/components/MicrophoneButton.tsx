@@ -19,8 +19,14 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const getApiKey = (): string | null => {
-    return localStorage.getItem('groq_api_key');
+  const getApiKey = async (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['groq_api_key'], (result) => {
+        const key = result.groq_api_key || null;
+        console.log('{SPEAKIN} Retrieved API key from chrome.storage:', key ? `${key.substring(0, 12)}...` : 'null');
+        resolve(key);
+      });
+    });
   };
 
   const startRecording = async () => {
@@ -74,7 +80,7 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
   const transcribeAudio = async (audioBlob: Blob) => {
     console.log('{SPEAKIN} transcribeAudio called with blob size:', audioBlob.size);
     try {
-      const apiKey = getApiKey();
+      const apiKey = await getApiKey();
       console.log('{SPEAKIN} API key retrieved:', apiKey ? `${apiKey.substring(0, 12)}...` : 'null');
 
       if (!apiKey) {

@@ -12,23 +12,26 @@ export const Popup: React.FC = () => {
 
   useEffect(() => {
     console.log('{SPEAKIN} Popup useEffect running');
-    const key = localStorage.getItem('groq_api_key');
-    console.log('{SPEAKIN} Retrieved API key from localStorage:', key ? `${key.substring(0, 12)}...` : 'null');
-    if (key) {
-      setSavedKey(key);
-      setApiKey(key);
-    }
+    chrome.storage.local.get(['groq_api_key'], (result) => {
+      const key = result.groq_api_key;
+      console.log('{SPEAKIN} Retrieved API key from chrome.storage:', key ? `${key.substring(0, 12)}...` : 'null');
+      if (key) {
+        setSavedKey(key);
+        setApiKey(key);
+      }
+    });
   }, []);
 
   const handleSave = () => {
     console.log('{SPEAKIN} handleSave called');
     if (apiKey.trim()) {
-      console.log('{SPEAKIN} Saving API key to localStorage:', apiKey.substring(0, 12) + '...');
-      localStorage.setItem('groq_api_key', apiKey.trim());
-      setSavedKey(apiKey.trim());
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-      console.log('{SPEAKIN} API key saved successfully');
+      console.log('{SPEAKIN} Saving API key to chrome.storage:', apiKey.substring(0, 12) + '...');
+      chrome.storage.local.set({ groq_api_key: apiKey.trim() }, () => {
+        setSavedKey(apiKey.trim());
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+        console.log('{SPEAKIN} API key saved successfully to chrome.storage');
+      });
     } else {
       console.log('{SPEAKIN} API key is empty, not saving');
     }
@@ -36,12 +39,13 @@ export const Popup: React.FC = () => {
 
   const handleClear = () => {
     console.log('{SPEAKIN} handleClear called');
-    localStorage.removeItem('groq_api_key');
-    setApiKey('');
-    setSavedKey('');
-    setShowClearSuccess(true);
-    setTimeout(() => setShowClearSuccess(false), 3000);
-    console.log('{SPEAKIN} API key cleared');
+    chrome.storage.local.remove('groq_api_key', () => {
+      setApiKey('');
+      setSavedKey('');
+      setShowClearSuccess(true);
+      setTimeout(() => setShowClearSuccess(false), 3000);
+      console.log('{SPEAKIN} API key cleared from chrome.storage');
+    });
   };
 
   const isKeyConfigured = savedKey.length > 0;
