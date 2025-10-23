@@ -136,6 +136,7 @@ function injectMicrophoneButton(container: HTMLElement) {
 
   // Criar container para o botão
   const micContainer = document.createElement('span');
+  micContainer.className = 'flex shrink min-w-8 !shrink-0';
   micContainer.setAttribute(INJECTION_MARKER, 'true');
   micContainer.style.display = 'inline-flex';
 
@@ -158,7 +159,6 @@ function injectMicrophoneButton(container: HTMLElement) {
   root.render(
     <MicrophoneButton
       onTranscription={(text) => insertTextIntoInput(inputElement, text)}
-      className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
     />
   );
 

@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
-import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
 interface MicrophoneButtonProps {
@@ -146,15 +145,17 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
   };
 
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="icon"
       onClick={handleClick}
       disabled={isProcessing}
       className={cn(
-        'shrink-0 transition-all',
-        isRecording && 'text-red-500 hover:text-red-600',
+        'border-0.5 transition-all h-8 min-w-8 rounded-lg flex items-center px-[7.5px] group !pointer-events-auto !outline-offset-1',
+        isRecording
+          ? 'text-red-500 border-red-500/20 hover:text-red-600 hover:bg-red-50'
+          : 'text-text-300 border-border-300 hover:text-text-200/90 hover:bg-bg-100',
+        isProcessing && 'opacity-50 cursor-not-allowed',
+        'active:scale-[0.98]',
         className
       )}
       aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
@@ -166,6 +167,6 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
       ) : (
         <Mic className="w-4 h-4" />
       )}
-    </Button>
+    </button>
   );
 };
