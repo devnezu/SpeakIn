@@ -164,6 +164,12 @@ function injectMicrophoneButton(
   // Usar classes customizadas se fornecidas, senão usar padrão
   if (target.wrapperClasses !== undefined) {
     micContainer.className = target.wrapperClasses || '';
+
+    // Se wrapper for vazio, usar display: contents para "invisibilizar" a div
+    // Isso mantém o botão no fluxo normal sem criar nível extra
+    if (target.wrapperClasses === '') {
+      micContainer.style.display = 'contents';
+    }
   } else {
     micContainer.className = 'flex shrink min-w-8 !shrink-0';
     micContainer.setAttribute('data-state', 'closed');
