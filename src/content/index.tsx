@@ -169,11 +169,9 @@ function injectMicrophoneButton(container: HTMLElement) {
 function observeAndInject() {
   console.log('{SPEAKIN} Starting observation and injection');
 
+  // Apenas injetar no input principal do chat que contém data-testid="chat-input"
   const targetSelectors = [
-    'form.w-full',
-    'div[class*="flex"][class*="flex-col"][class*="bg-bg-000"]',
-    'div[class*="relative"][class*="bg-bg-000"][class*="rounded-lg"]',
-    'div[class*="relative"][class*="bg-bg-000"][class*="border"]',
+    'div[class*="flex-col"][class*="bg-bg-000"]:has([data-testid="chat-input"])'
   ];
 
   console.log('{SPEAKIN} Target selectors:', targetSelectors);
