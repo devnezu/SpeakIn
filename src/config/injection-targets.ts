@@ -29,6 +29,12 @@ export interface InjectionTarget {
 
   /** Se true, injeta apenas uma vez (não observa mutações) */
   injectOnce?: boolean;
+
+  /** Classes CSS customizadas para o wrapper do botão (opcional) */
+  wrapperClasses?: string;
+
+  /** Classes CSS customizadas para o botão (opcional) */
+  buttonClasses?: string;
 }
 
 /**
@@ -77,6 +83,8 @@ export const injectionTargets: InjectionTarget[] = [
     insertBeforeSelector: 'button[type="submit"]',
     minButtonsRequired: 0,
     injectOnce: false,
+    wrapperClasses: '', // Sem wrapper extra, vai direto no container
+    buttonClasses: 'border-0.5 transition-all h-6 w-6 rounded-md flex items-center justify-center group !pointer-events-auto !outline-offset-1 text-text-300 border-border-300 hover:text-text-200/90 hover:bg-bg-100 active:scale-[0.98]',
   },
 
   // Exemplo: ChatGPT (descomente e ajuste os seletores)

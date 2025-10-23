@@ -144,20 +144,29 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({
     }
   };
 
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={isProcessing}
-      className={cn(
+  // Se className customizada for fornecida, usa ela completamente
+  // Caso contrário, usa as classes padrão
+  const buttonClassName = className
+    ? cn(
+        className,
+        isRecording && 'text-red-500 border-red-500/20 hover:text-red-600 hover:bg-red-50',
+        isProcessing && 'opacity-50 cursor-not-allowed'
+      )
+    : cn(
         'border-0.5 transition-all h-8 min-w-8 rounded-lg flex items-center px-[7.5px] group !pointer-events-auto !outline-offset-1',
         isRecording
           ? 'text-red-500 border-red-500/20 hover:text-red-600 hover:bg-red-50'
           : 'text-text-300 border-border-300 hover:text-text-200/90 hover:bg-bg-100',
         isProcessing && 'opacity-50 cursor-not-allowed',
-        'active:scale-[0.98]',
-        className
-      )}
+        'active:scale-[0.98]'
+      );
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={isProcessing}
+      className={buttonClassName}
       aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
     >
       {isProcessing ? (

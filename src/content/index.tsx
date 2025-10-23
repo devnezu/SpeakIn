@@ -160,11 +160,18 @@ function injectMicrophoneButton(
 
   // Criar container para o botão
   const micContainer = document.createElement('div');
-  micContainer.className = 'flex shrink min-w-8 !shrink-0';
+
+  // Usar classes customizadas se fornecidas, senão usar padrão
+  if (target.wrapperClasses !== undefined) {
+    micContainer.className = target.wrapperClasses || '';
+  } else {
+    micContainer.className = 'flex shrink min-w-8 !shrink-0';
+    micContainer.setAttribute('data-state', 'closed');
+    micContainer.style.opacity = '1';
+    micContainer.style.transform = 'none';
+  }
+
   micContainer.setAttribute(INJECTION_MARKER, 'true');
-  micContainer.setAttribute('data-state', 'closed');
-  micContainer.style.opacity = '1';
-  micContainer.style.transform = 'none';
 
   // Determinar onde inserir o botão
   let insertBefore: Element | null = null;
@@ -186,6 +193,7 @@ function injectMicrophoneButton(
   root.render(
     <MicrophoneButton
       onTranscription={(text) => insertTextIntoInput(inputElement, text)}
+      className={target.buttonClasses}
     />
   );
 
