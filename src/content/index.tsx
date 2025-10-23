@@ -134,25 +134,32 @@ function injectMicrophoneButton(container: HTMLElement) {
 
   console.log('{SPEAKIN} Found controls area:', controlsArea);
 
-  // Criar container para o botão
+  // Aguardar outros botões carregarem antes de injetar
+  const existingButtons = controlsArea.querySelectorAll('.flex.shrink-0, .flex.shrink');
+  if (existingButtons.length < 2) {
+    console.log('{SPEAKIN} Not enough buttons loaded yet, waiting...');
+    return;
+  }
+
+  // Criar container para o botão (exatamente como os botões nativos)
   const micContainer = document.createElement('div');
-  micContainer.className = 'flex shrink-0';
+  micContainer.className = 'flex shrink min-w-8 !shrink-0';
   micContainer.setAttribute(INJECTION_MARKER, 'true');
   micContainer.setAttribute('data-state', 'closed');
   micContainer.style.opacity = '1';
   micContainer.style.transform = 'none';
 
-  // Tentar encontrar o botão submit para inserir antes dele
-  const submitButton = controlsArea.querySelector('button[type="submit"]');
+  // Tentar encontrar o botão do Artifacts (relógio) para inserir antes dele
+  const artifactsButton = controlsArea.querySelector('.flex.shrink.min-w-8');
 
-  if (submitButton) {
-    // Inserir antes do submit button
-    submitButton.parentElement!.insertBefore(micContainer, submitButton);
-    console.log('{SPEAKIN} Inserted button before submit button');
+  if (artifactsButton) {
+    // Inserir antes do botão do Artifacts
+    controlsArea.insertBefore(micContainer, artifactsButton);
+    console.log('{SPEAKIN} Inserted button before Artifacts button');
   } else {
     // Fallback: inserir no final da área de controles
     controlsArea.appendChild(micContainer);
-    console.log('{SPEAKIN} Appended button to controls area (no submit found)');
+    console.log('{SPEAKIN} Appended button to controls area');
   }
 
   // Renderizar o botão React
