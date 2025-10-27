@@ -76,7 +76,6 @@ function injectMicrophoneButton(container: HTMLElement) {
     return;
   }
 
-  // Verificar se algum ancestor já foi processado
   let parent = container.parentElement;
   while (parent) {
     if (parent.hasAttribute(INJECTION_MARKER)) {
@@ -92,58 +91,87 @@ function injectMicrophoneButton(container: HTMLElement) {
     return;
   }
 
-  // Procurar pelo botão de plus especificamente
-  const plusButton = container.querySelector('button[id="input-plus-menu-trigger"]');
-  if (!plusButton) {
-    console.log('{SPEAKIN} Plus button not found, skipping injection');
-    return;
-  }
-
-  // Subir até encontrar o container pai que envolve o botão de plus
-  // Esse container é tipicamente um div com classes "relative shrink-0"
-  let plusContainer = plusButton.closest('.relative.shrink-0');
-  if (!plusContainer) {
-    console.log('{SPEAKIN} Plus button container not found, skipping injection');
-    return;
-  }
-
-  // Verificar se já existe um botão de microfone
-  if (container.querySelector(`div[${INJECTION_MARKER}="true"]`)) {
+  if (container.querySelector(`[${INJECTION_MARKER}="true"]`)) {
     console.log('{SPEAKIN} Microphone button already exists, skipping');
     container.setAttribute(INJECTION_MARKER, 'true');
     return;
   }
 
-  console.log('{SPEAKIN} Found plus button container:', plusContainer);
+  const plusButton = container.querySelector('button[id="input-plus-menu-trigger"]');
+  
+  if (plusButton) {
+    console.log('{SPEAKIN} Found plus button, using main chat input logic');
+    
+    let plusContainer = plusButton.closest('.relative.shrink-0');
+    if (!plusContainer) {
+      console.log('{SPEAKIN} Plus button container not found, skipping injection');
+      return;
+    }
 
-  // Criar container para o botão de microfone
-  const micContainer = document.createElement('div');
-  micContainer.setAttribute(INJECTION_MARKER, 'true');
+    console.log('{SPEAKIN} Found plus button container:', plusContainer);
 
-  // Inserir o botão DEPOIS do container do plus button
-  plusContainer.parentElement!.insertBefore(micContainer, plusContainer.nextSibling);
-  console.log('{SPEAKIN} Inserted button container after plus button');
+    const micContainer = document.createElement('div');
+    micContainer.setAttribute(INJECTION_MARKER, 'true');
 
-  // Renderizar o botão React
-  console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
-  const root = createRoot(micContainer);
-  root.render(
-    <MicrophoneButton
-      onTranscription={(text) => insertTextIntoInput(inputElement, text)}
-      className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
-    />
-  );
+    plusContainer.parentElement!.insertBefore(micContainer, plusContainer.nextSibling);
+    console.log('{SPEAKIN} Inserted button container after plus button');
 
-  container.setAttribute(INJECTION_MARKER, 'true');
-  console.log('{SPEAKIN} Button injection complete');
+    console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
+    const root = createRoot(micContainer);
+    root.render(
+      <MicrophoneButton
+        onTranscription={(text) => insertTextIntoInput(inputElement, text)}
+        className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
+      />
+    );
+
+    container.setAttribute(INJECTION_MARKER, 'true');
+    console.log('{SPEAKIN} Button injection complete (main chat)');
+    
+  } else {
+    console.log('{SPEAKIN} Plus button not found, checking for submit button (thread reply)');
+    
+    const submitButton = container.querySelector('button[type="submit"]');
+    if (!submitButton) {
+      console.log('{SPEAKIN} Submit button not found, skipping injection');
+      return;
+    }
+
+    const flexContainer = submitButton.parentElement;
+    if (!flexContainer) {
+      console.log('{SPEAKIN} Submit button parent not found, skipping injection');
+      return;
+    }
+
+    console.log('{SPEAKIN} Found submit button and flex container:', flexContainer);
+
+    const micSpan = document.createElement('span');
+    micSpan.setAttribute(INJECTION_MARKER, 'true');
+    micSpan.style.display = 'contents';
+
+    flexContainer.insertBefore(micSpan, submitButton);
+    console.log('{SPEAKIN} Inserted button span before submit button');
+
+    console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
+    const root = createRoot(micSpan);
+    root.render(
+      <MicrophoneButton
+        onTranscription={(text) => insertTextIntoInput(inputElement, text)}
+        className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
+      />
+    );
+
+    container.setAttribute(INJECTION_MARKER, 'true');
+    console.log('{SPEAKIN} Button injection complete (thread reply)');
+  }
 }
 
 function observeAndInject() {
   console.log('{SPEAKIN} Starting observation and injection');
 
-  // Apenas injetar no input principal do chat que contém data-testid="chat-input"
   const targetSelectors = [
-    'div[class*="flex-col"][class*="bg-bg-000"]:has([data-testid="chat-input"])'
+    'div[class*="flex-col"][class*="bg-bg-000"]:has([data-testid="chat-input"])',
+    'form:has(#turn-textarea)'
   ];
 
   console.log('{SPEAKIN} Target selectors:', targetSelectors);
