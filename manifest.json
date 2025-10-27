@@ -19,7 +19,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://claude.ai/*"],
       "js": ["dist/content.js"],
       "css": ["dist/index.css"],
       "run_at": "document_idle"
@@ -28,7 +28,7 @@
   "web_accessible_resources": [
     {
       "resources": ["dist/*"],
-      "matches": ["<all_urls>"]
+      "matches": ["https://claude.ai/*"]
     }
   ],
   "icons": {
