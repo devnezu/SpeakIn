@@ -2,221 +2,312 @@ import { createRoot } from 'react-dom/client';
 import { MicrophoneButton } from '../components/MicrophoneButton';
 import '../index.css';
 
-const INJECTION_MARKER = 'speakin-injected';
+const INJECTION_ATTR = 'data-speakin-injected';
 
 console.log('{SPEAKIN} Content script loaded');
-console.log('{SPEAKIN} Document state:', document.readyState);
 
+function isUsable(el: HTMLElement): boolean {
+  // Ignora árvore SSR "inert" (o Claude usa um textarea SSR que não é interativo)
+  if (el.closest('[inert]')) return false;
+
+  const style = window.getComputedStyle(el);
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+
+  // Evita pegar elementos que não recebem interação
+  if (style.pointerEvents === 'none') return false;
+
+  const rect = el.getBoundingClientRect();
+  // Elementos "reais" do input sempre têm área (ou são focáveis).
+  if (rect.width === 0 && rect.height === 0) return false;
+
+  return true;
+}
+
+function findInputElement(scope: ParentNode = document): HTMLElement | null {
+  // ✅ NOVO Claude: editor real (TipTap/ProseMirror)
+  const pm = scope.querySelector<HTMLElement>(
+    'div[data-testid="chat-input"][contenteditable="true"]'
+  );
+  if (pm && isUsable(pm)) return pm;
+
+  // ⚠️ textarea SSR (geralmente fica em fieldset[inert], então isUsable vai barrar)
+  const ssr = scope.querySelector<HTMLTextAreaElement>(
+    'textarea[data-testid="chat-input-ssr"]'
+  );
+  if (ssr && isUsable(ssr)) return ssr;
+
+  // Fallback genérico: algum textbox contenteditable
+  const anyCE = scope.querySelector<HTMLElement>(
+    '[contenteditable="true"][role="textbox"]'
+  );
+  if (anyCE && isUsable(anyCE)) return anyCE;
+
+  // Fallback final: textarea normal
+  const textarea = scope.querySelector<HTMLTextAreaElement>('textarea');
+  if (textarea && isUsable(textarea)) return textarea;
+
+  return null;
+}
+
+function ensureCaretInside(el: HTMLElement) {
+  el.focus();
+
+  const sel = window.getSelection();
+  const selectionInside =
+    !!sel && sel.rangeCount > 0 && el.contains(sel.anchorNode);
+
+  if (!selectionInside) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false); // fim
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+}
+
+function computePrefixSpace(el: HTMLElement): string {
+  const current = (el.textContent ?? '').replace(/\u200B/g, '');
+  const hasText = current.trim().length > 0;
+  const endsWithSpace = /\s$/.test(current);
+  return hasText && !endsWithSpace ? ' ' : '';
+}
+
+// Inserção resiliente (ProseMirror/TipTap + textarea)
 function insertTextIntoInput(element: HTMLElement, text: string) {
   console.log('{SPEAKIN} Inserting text into input:', text);
-  console.log('{SPEAKIN} Target element:', element);
 
+  // ✅ Textarea
   if (element instanceof HTMLTextAreaElement) {
-    const currentValue = element.value;
-    const newValue = currentValue ? `${currentValue} ${text}` : text;
+    const prefix = element.value && !/\s$/.test(element.value) ? ' ' : '';
+    const newValue = element.value ? `${element.value}${prefix}${text}` : text;
 
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    // Hack para React-controlled inputs
+    const nativeSetter = Object.getOwnPropertyDescriptor(
       HTMLTextAreaElement.prototype,
       'value'
     )?.set;
 
-    if (nativeInputValueSetter) {
-      nativeInputValueSetter.call(element, newValue);
-    }
+    if (nativeSetter) nativeSetter.call(element, newValue);
+    else element.value = newValue;
 
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
     element.focus();
-  } else if (element.hasAttribute('contenteditable')) {
-    const paragraph = element.querySelector('p');
-    if (paragraph) {
-      const currentText = paragraph.textContent || '';
-      const newText = currentText ? `${currentText} ${text}` : text;
-      paragraph.textContent = newText;
+    return;
+  }
 
-      paragraph.classList.remove('is-empty', 'is-editor-empty');
+  // ✅ ContentEditable (Claude novo: ProseMirror)
+  if (element.isContentEditable) {
+    const prefix = computePrefixSpace(element);
+    const toInsert = `${prefix}${text}`;
+
+    ensureCaretInside(element);
+
+    // ✅ Melhor compatibilidade com editores ricos
+    const ok =
+      typeof document.execCommand === 'function' &&
+      document.execCommand('insertText', false, toInsert);
+
+    if (ok) return;
+
+    // Fallback moderno: beforeinput (muitos editores escutam isso)
+    const ev = new InputEvent('beforeinput', {
+      inputType: 'insertText',
+      data: toInsert,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    element.dispatchEvent(ev);
+
+    // Se o editor não lidou com beforeinput, faz um último fallback (bem simples)
+    if (!ev.defaultPrevented) {
+      const p =
+        element.querySelector<HTMLParagraphElement>('p:last-child') ??
+        element.querySelector<HTMLParagraphElement>('p');
+
+      if (p) {
+        p.textContent = (p.textContent ?? '') + toInsert;
+      } else {
+        element.textContent = (element.textContent ?? '') + toInsert;
+      }
 
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
-
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(paragraph);
-      range.collapse(false);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-
-      element.focus();
     }
+
+    return;
   }
 }
 
-function findInputElement(container: HTMLElement): HTMLElement | null {
-  const textarea = container.querySelector('textarea');
-  if (textarea) {
-    console.log('{SPEAKIN} Found textarea:', textarea);
-    return textarea;
-  }
+function findToolbar(container: HTMLElement): HTMLElement | null {
+  // No HTML novo, a barra é: <div class="flex gap-2 w-full items-center"> ... </div>
+  const toolbars = Array.from(
+    container.querySelectorAll<HTMLElement>('div.flex.gap-2.w-full.items-center')
+  );
 
-  const contentEditable = container.querySelector('[contenteditable="true"]');
-  if (contentEditable instanceof HTMLElement) {
-    console.log('{SPEAKIN} Found contenteditable:', contentEditable);
-    return contentEditable;
-  }
+  if (toolbars.length === 0) return null;
 
-  console.log('{SPEAKIN} No input element found in container:', container);
-  return null;
+  // Preferir a toolbar que contém o botão de enviar
+  const preferred =
+    toolbars.find((tb) =>
+      tb.querySelector(
+        'button[aria-label="Enviar mensagem"], button[aria-label="Send message"], button[aria-label="Send Message"]'
+      )
+    ) ?? toolbars[toolbars.length - 1];
+
+  return preferred ?? null;
 }
 
 function injectMicrophoneButton(container: HTMLElement) {
-  console.log('{SPEAKIN} Attempting to inject button into container:', container);
+  // Só injeta se existir algum input real dentro do container
+  const input = findInputElement(container);
+  if (!input) return;
 
-  if (container.hasAttribute(INJECTION_MARKER)) {
-    console.log('{SPEAKIN} Container already has injection marker, skipping');
-    return;
-  }
+  const targetToolbar = findToolbar(container);
 
-  let parent = container.parentElement;
-  while (parent) {
-    if (parent.hasAttribute(INJECTION_MARKER)) {
-      console.log('{SPEAKIN} Parent element already has injection marker, skipping');
-      return;
-    }
-    parent = parent.parentElement;
-  }
-
-  const inputElement = findInputElement(container);
-  if (!inputElement) {
-    console.log('{SPEAKIN} No input element found, skipping injection');
-    return;
-  }
-
-  if (container.querySelector(`[${INJECTION_MARKER}="true"]`)) {
-    console.log('{SPEAKIN} Microphone button already exists, skipping');
-    container.setAttribute(INJECTION_MARKER, 'true');
-    return;
-  }
-
-  const plusButton = container.querySelector('button[id="input-plus-menu-trigger"]');
-  
-  if (plusButton) {
-    console.log('{SPEAKIN} Found plus button, using main chat input logic');
-    
-    let plusContainer = plusButton.closest('.relative.shrink-0');
-    if (!plusContainer) {
-      console.log('{SPEAKIN} Plus button container not found, skipping injection');
-      return;
-    }
-
-    console.log('{SPEAKIN} Found plus button container:', plusContainer);
+  // Caso novo layout exista
+  if (targetToolbar) {
+    // ✅ Evita duplicação olhando dentro do toolbar (não no container inteiro)
+    if (targetToolbar.querySelector(`[${INJECTION_ATTR}]`)) return;
 
     const micContainer = document.createElement('div');
-    micContainer.setAttribute(INJECTION_MARKER, 'true');
+    micContainer.setAttribute(INJECTION_ATTR, 'true');
+    micContainer.className = 'flex items-center justify-center shrink-0';
 
-    plusContainer.parentElement!.insertBefore(micContainer, plusContainer.nextSibling);
-    console.log('{SPEAKIN} Inserted button container after plus button');
+    const sendButton = targetToolbar.querySelector<HTMLButtonElement>(
+      'button[aria-label="Enviar mensagem"], button[aria-label="Send message"], button[aria-label="Send Message"]'
+    );
 
-    console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
+    // Tenta achar um wrapper “bonito” do botão de enviar (o Claude envolve com divs)
+    const insertionPoint =
+      sendButton?.closest<HTMLElement>('div[style*="transform"]') ??
+      sendButton?.parentElement ??
+      null;
+
+    if (insertionPoint && insertionPoint.parentElement === targetToolbar) {
+      targetToolbar.insertBefore(micContainer, insertionPoint);
+    } else {
+      targetToolbar.appendChild(micContainer);
+    }
+
+    const root = createRoot(micContainer);
+
+    root.render(
+      <MicrophoneButton
+        onTranscription={(text) => {
+          // ✅ IMPORTANTÍSSIMO: buscar o input na hora (evita referência stale)
+          const liveInput =
+            findInputElement(container) ?? findInputElement(document);
+
+          if (!liveInput) {
+            console.warn(
+              '{SPEAKIN} Could not find Claude input to insert transcription'
+            );
+            return;
+          }
+
+          insertTextIntoInput(liveInput, text);
+        }}
+        className="h-8 w-8 rounded-lg text-text-500 hover:text-text-900 hover:bg-bg-200 transition-colors flex items-center justify-center"
+      />
+    );
+
+    console.log('{SPEAKIN} Injection successful (new toolbar)');
+    return;
+  }
+
+  // --- Fallback antigo (layouts legados) ---
+  const submitButton = container.querySelector<HTMLButtonElement>(
+    'button[type="submit"]'
+  );
+
+  if (submitButton && submitButton.parentElement) {
+    // Evita duplicação no fallback
+    if (submitButton.parentElement.querySelector(`[${INJECTION_ATTR}]`)) return;
+
+    const micContainer = document.createElement('div');
+    micContainer.setAttribute(INJECTION_ATTR, 'true');
+    micContainer.style.display = 'flex';
+    micContainer.style.alignItems = 'center';
+
+    submitButton.parentElement.insertBefore(micContainer, submitButton);
+
     const root = createRoot(micContainer);
     root.render(
       <MicrophoneButton
-        onTranscription={(text) => insertTextIntoInput(inputElement, text)}
-        className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
+        onTranscription={(text) => {
+          const liveInput =
+            findInputElement(container) ?? findInputElement(document);
+          if (!liveInput) return;
+          insertTextIntoInput(liveInput, text);
+        }}
+        className="mr-2 h-8 w-8 rounded-lg hover:bg-bg-200 text-text-500"
       />
     );
 
-    container.setAttribute(INJECTION_MARKER, 'true');
-    console.log('{SPEAKIN} Button injection complete (main chat)');
-    
-  } else {
-    console.log('{SPEAKIN} Plus button not found, checking for submit button (thread reply)');
-    
-    const submitButton = container.querySelector('button[type="submit"]');
-    if (!submitButton) {
-      console.log('{SPEAKIN} Submit button not found, skipping injection');
-      return;
-    }
-
-    const flexContainer = submitButton.parentElement;
-    if (!flexContainer) {
-      console.log('{SPEAKIN} Submit button parent not found, skipping injection');
-      return;
-    }
-
-    console.log('{SPEAKIN} Found submit button and flex container:', flexContainer);
-
-    const micSpan = document.createElement('span');
-    micSpan.setAttribute(INJECTION_MARKER, 'true');
-    micSpan.style.display = 'contents';
-
-    flexContainer.insertBefore(micSpan, submitButton);
-    console.log('{SPEAKIN} Inserted button span before submit button');
-
-    console.log('{SPEAKIN} Creating React root and rendering MicrophoneButton');
-    const root = createRoot(micSpan);
-    root.render(
-      <MicrophoneButton
-        onTranscription={(text) => insertTextIntoInput(inputElement, text)}
-        className="self-end rounded-lg p-1.5 transition-colors hover:bg-bg-100 text-text-300 hover:text-text-200"
-      />
-    );
-
-    container.setAttribute(INJECTION_MARKER, 'true');
-    console.log('{SPEAKIN} Button injection complete (thread reply)');
+    console.log('{SPEAKIN} Injection successful (legacy fallback)');
   }
 }
 
 function observeAndInject() {
-  console.log('{SPEAKIN} Starting observation and injection');
+  console.log('{SPEAKIN} Starting observation service');
 
-  const targetSelectors = [
-    'div[class*="flex-col"][class*="bg-bg-000"]:has([data-testid="chat-input"])',
-    'form:has(#turn-textarea)'
-  ];
+  const scanAndInject = () => {
+    // ✅ Novo Claude: procurar diretamente o editor real
+    const editors = document.querySelectorAll<HTMLElement>(
+      'div[data-testid="chat-input"][contenteditable="true"]'
+    );
 
-  console.log('{SPEAKIN} Target selectors:', targetSelectors);
+    if (editors.length > 0) {
+      editors.forEach((editor) => {
+        // container mais estável no layout novo
+        const container =
+          editor.closest<HTMLElement>('div[data-testid="chat-input-grid-container"]') ??
+          editor.closest<HTMLElement>('fieldset') ??
+          editor.parentElement;
 
-  function scanAndInject() {
-    console.log('{SPEAKIN} Scanning for injection points...');
-    targetSelectors.forEach((selector) => {
-      const containers = document.querySelectorAll(selector);
-      console.log(`{SPEAKIN} Found ${containers.length} containers for selector: "${selector}"`);
-
-      containers.forEach((container, index) => {
-        console.log(`{SPEAKIN} Processing container ${index + 1}/${containers.length}`);
-        if (container instanceof HTMLElement && !container.hasAttribute(INJECTION_MARKER)) {
-          injectMicrophoneButton(container);
-        } else if (container.hasAttribute(INJECTION_MARKER)) {
-          console.log(`{SPEAKIN} Container ${index + 1} already processed`);
-        }
+        if (container) injectMicrophoneButton(container);
       });
-    });
-    console.log('{SPEAKIN} Scan complete');
-  }
+      return;
+    }
 
+    // Fallback: procurar containers clássicos que tenham textarea ou contenteditable
+    const candidates = document.querySelectorAll<HTMLElement>('fieldset, form');
+    candidates.forEach((c) => {
+      if (findInputElement(c)) injectMicrophoneButton(c);
+    });
+  };
+
+  // Scan inicial
   scanAndInject();
 
-  console.log('{SPEAKIN} Setting up MutationObserver');
-  const observer = new MutationObserver(() => {
-    console.log('{SPEAKIN} DOM mutation detected, rescanning...');
-    scanAndInject();
+  // Debounce leve para não escanear a cada mutação
+  let scheduled = false;
+
+  const observer = new MutationObserver((mutations) => {
+    if (scheduled) return;
+
+    // Só reagir a adições relevantes
+    const shouldScan = mutations.some((m) => m.addedNodes.length > 0);
+    if (!shouldScan) return;
+
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      scanAndInject();
+    });
   });
 
   observer.observe(document.body, {
     childList: true,
     subtree: true,
   });
-  console.log('{SPEAKIN} MutationObserver active');
 }
 
-console.log('{SPEAKIN} Checking document ready state...');
+// Inicialização segura
 if (document.readyState === 'loading') {
-  console.log('{SPEAKIN} Document still loading, waiting for DOMContentLoaded');
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('{SPEAKIN} DOMContentLoaded fired');
-    observeAndInject();
-  });
+  document.addEventListener('DOMContentLoaded', observeAndInject);
 } else {
-  console.log('{SPEAKIN} Document already loaded, starting immediately');
   observeAndInject();
 }
